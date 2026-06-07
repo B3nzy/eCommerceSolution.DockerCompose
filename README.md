@@ -16,10 +16,10 @@ The system is divided into strict multi-network layer rings to protect the downs
 
 | Service Name         | Container Name                    | Technology / Image                           | External Port | Internal Network           |
 | :------------------- | :-------------------------------- | :------------------------------------------- | :------------ | :------------------------- |
-| **API Gateway**      | `ocelot-api-gateway`              | Ocelot (.NET 8)                              | `8000`        | Gateway & Inter-Service    |
+| **API Gateway**      | `ocelot-api-gateway`              | Ocelot (.NET 10)                             | `8000`        | Gateway & Inter-Service    |
 | **Users Service**    | `ecommerce-users-microservice`    | ASP.NET Core 8                               | _Hidden_      | User DB & Inter-Service    |
 | **Products Service** | `ecommerce-products-microservice` | ASP.NET Core 8                               | _Hidden_      | Product DB & Inter-Service |
-| **Orders Service**   | `ecommerce-orders-microservice`   | ASP.NET Core 8                               | _Hidden_      | Order DB & Inter-Service   |
+| **Orders Service**   | `ecommerce-orders-microservice`   | ASP.NET Core 10                              | _Hidden_      | Order DB & Inter-Service   |
 | **User Database**    | `postgres-user-db`                | `postgres:latest`                            | `5433`        | User DB Only               |
 | **Product Database** | `mssql-product-db`                | `mcr.microsoft.com/mssql/server:2025-latest` | `1433`        | Product DB Only            |
 | **Order Database**   | `mongo-order-db`                  | `mongo:latest`                               | `27017`       | Order DB Only              |
