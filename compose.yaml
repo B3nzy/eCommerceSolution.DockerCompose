@@ -1,0 +1,154 @@
+name: eCommerceSolution
+
+services:
+  # ==========================================
+  # 0. OCELOT API GATEWAY STACK
+  # ==========================================
+  ocelot-gateway:
+    build:
+      context: ../
+      dockerfile: eCommerceSolution.OcelotApiGateway/eCommerceSolution.OcelotApiGateway/Dockerfile # Update this path to match your exact Gateway Dockerfile location
+    container_name: ocelot-api-gateway
+    ports:
+      - "8000:8080" # Exposed to the outside world (Frontend applications)
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    networks:
+      - gateway-network # To accept incoming public traffic
+      - inter-service-network # To route traffic internally to microservices
+    depends_on:
+      - ecommerce-users-microservice
+      - ecommerce-products-microservice
+      - ecommerce-orders-microservice
+
+  # ==========================================
+  # 1. USER SERVICE STACK
+  # ==========================================
+  postgres-db:
+    image: postgres:latest
+    container_name: postgres-user-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: "mysecretpassword"
+      POSTGRES_DB: "eCommerceUsers"
+    networks:
+      - user-db-network # Isolated with User API
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  ecommerce-users-microservice:
+    build:
+      context: ../
+      dockerfile: eCommerceSolution.UsersService/eCommerce.API/Dockerfile
+    container_name: ecommerce-users-microservice
+    # ports:
+    #   - "5000:8080"
+    #   - "5001:8081"
+    networks:
+      - user-db-network # To talk to Postgres
+      - inter-service-network # To talk to Order Service
+    depends_on:
+      - postgres-db
+
+  # ==========================================
+  # 2. PRODUCT SERVICE STACK
+  # ==========================================
+  mssql-db:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: mssql-product-db
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "MangoSecurePassword47!"
+      MSSQL_PID: "Developer"
+    networks:
+      - product-db-network # Isolated with Product API
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+  ecommerce-products-microservice:
+    build:
+      context: ../
+      dockerfile: eCommerceSolution.ProductsService/eCommerceSolution.ProductsService/Dockerfile
+    container_name: ecommerce-products-microservice
+    # ports:
+    #   - "5100:8080"
+    #   - "5101:8081"
+    networks:
+      - product-db-network # To talk to SQL Server
+      - inter-service-network # To talk to Order Service
+    depends_on:
+      - mssql-db
+
+  # ==========================================
+  # 3. REDIS
+  # ==========================================
+
+  redis-cache:
+    image: redis:latest
+    container_name: eCommerce-redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - inter-service-network
+    volumes:
+      - redis_data:/data
+    command: redis-server --requirepass MySecurePassword123!
+
+  # ==========================================
+  # 4. ORDER SERVICE STACK
+  # ==========================================
+  mongodb:
+    image: mongo:latest
+    container_name: mongo-order-db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongo-secret-password
+      MONGO_INITDB_DATABASE: eCommerceOrders
+    networks:
+      - order-db-network # Isolated with Order API
+    volumes:
+      - mongo_data:/data/db
+
+  ecommerce-orders-microservice:
+    build:
+      context: ../
+      dockerfile: eCommerceSolution.OrdersService/eCommerceSolution.OrdersService/Dockerfile
+    container_name: ecommerce-orders-microservice
+    # ports:
+    #   - "5200:8080"
+    #   - "5201:8081"
+    networks:
+      - order-db-network # To talk to MongoDB
+      - inter-service-network # To talk to User & Product APIs
+    depends_on:
+      - mongodb
+      - ecommerce-users-microservice
+      - ecommerce-products-microservice
+
+# ==========================================
+# NETWORK DEFINITIONS
+# ==========================================
+networks:
+  # Isolated database networks
+  user-db-network:
+    driver: bridge
+  product-db-network:
+    driver: bridge
+  order-db-network:
+    driver: bridge
+  inter-service-network: # Shared network ONLY for API-to-API communication
+    driver: bridge
+  gateway-network: # Outer network for external/public traffic entry
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mssql_data:
+  mongo_data:
+  redis_data:
