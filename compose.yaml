@@ -82,6 +82,7 @@ services:
       - inter-service-network # To talk to Order Service
     depends_on:
       - mssql-db
+      - rabbitmq
 
   # ==========================================
   # 3. REDIS
@@ -130,6 +131,24 @@ services:
       - mongodb
       - ecommerce-users-microservice
       - ecommerce-products-microservice
+      - rabbitmq
+
+  # ==========================================
+  # 5. MESSAGE BROKER STACK (RABBITMQ)
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ecommerce-rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol port for MassTransit
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - inter-service-network # Crucial: Allows microservices to reach RabbitMQ
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
 # ==========================================
 # NETWORK DEFINITIONS
@@ -152,3 +171,4 @@ volumes:
   mssql_data:
   mongo_data:
   redis_data:
+  rabbitmq_data:
