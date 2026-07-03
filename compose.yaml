@@ -150,6 +150,38 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  # ==========================================
+  # 6. INVENTORY SERVICE STACK
+  # ==========================================
+  mssql-inventory-db:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: mssql-inventory-db
+    ports:
+      - "1434:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "MangoSecurePassword47!"
+      MSSQL_PID: "Developer"
+    networks:
+      - inventory-db-network # Isolated with Inventory API
+    volumes:
+      - inventory_mssql_data:/var/opt/mssql
+
+  ecommerce-inventory-microservice:
+    build:
+      context: ../
+      dockerfile: eCommerceSolution.InventoryService/eCommerceSolution.InventoryService/Dockerfile
+    container_name: ecommerce-inventory-microservice
+    ports:
+      - "5300:8080"
+      - "5301:8081"
+    networks:
+      - inventory-db-network # To talk to SQL Server
+      - inter-service-network # To talk to Order Service
+    depends_on:
+      - mssql-inventory-db
+      - rabbitmq
+
 # ==========================================
 # NETWORK DEFINITIONS
 # ==========================================
@@ -165,6 +197,8 @@ networks:
     driver: bridge
   gateway-network: # Outer network for external/public traffic entry
     driver: bridge
+  inventory-db-network:
+    driver: bridge
 
 volumes:
   postgres_data:
@@ -172,3 +206,4 @@ volumes:
   mongo_data:
   redis_data:
   rabbitmq_data:
+  inventory_mssql_data:
