@@ -69,6 +69,17 @@ services:
     volumes:
       - mssql_data:/var/opt/mssql
 
+  qdrant-product-db:
+    image: qdrant/qdrant:master
+    container_name: qdrant-product-db
+    ports:
+      - "6333:6333" # HTTP API
+      - "6334:6334" # gRPC API
+    networks:
+      - product-vector-db-network
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   ecommerce-products-microservice:
     build:
       context: ../
@@ -80,8 +91,10 @@ services:
     networks:
       - product-db-network # To talk to SQL Server
       - inter-service-network # To talk to Order Service
+      - product-vector-db-network # To talk to Qdrant Server
     depends_on:
       - mssql-db
+      - qdrant-product-db
       - rabbitmq
 
   # ==========================================
@@ -191,6 +204,8 @@ networks:
     driver: bridge
   product-db-network:
     driver: bridge
+  product-vector-db-network: # Added for Qdrant isolation
+    driver: bridge
   order-db-network:
     driver: bridge
   inter-service-network: # Shared network ONLY for API-to-API communication
@@ -207,3 +222,4 @@ volumes:
   redis_data:
   rabbitmq_data:
   inventory_mssql_data:
+  qdrant_data:
